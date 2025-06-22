@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Select Food - Table {{ table.table_number }}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'food/css/food.css' %}" />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <span class="navbar-brand">Table {{ table.table_number }}</span>
+        <div class="navbar-nav ms-auto">
+          <a href="#" class="nav-link" id="cart-link">
+            Cart (<span id="cart-count">0</span>)
+          </a>
+          <a href="{% url 'authentication:logout' %}" class="nav-link"
+            >Logout</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+      <div class="row">
+        <!-- Popular Items Section -->
+        <div class="col-md-9">
+          <h2 class="mb-4">Popular Items</h2>
+          <div class="row">
+            {% for item in popular_items %}
+            <div class="col-md-3 mb-4">
+              <div class="food-card">
+                <img
+                  src="{{ item.image.url }}"
+                  alt="{{ item.name }}"
+                  class="food-image"
+                />
+                <div class="food-info">
+                  <h5>{{ item.name }}</h5>
+                  <p class="food-price">${{ item.price }}</p>
+                  <button
+                    class="btn btn-sm btn-primary add-to-cart"
+                    data-food-id="{{ item.id }}"
+                    data-food-name="{{ item.name }}"
+                    data-food-price="{{ item.price }}"
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <h2 class="mb-4 mt-5">All Items</h2>
+          <div class="row" id="food-items">
+            {% for item in foods %}
+            <div class="col-md-3 mb-4">
+              <div class="food-card">
+                <img
+                  src="{{ item.image.url }}"
+                  alt="{{ item.name }}"
+                  class="food-image"
+                />
+                <div class="food-info">
+                  <h5>{{ item.name }}</h5>
+                  <p class="food-description">
+                    {{ item.description|truncatewords:10 }}
+                  </p>
+                  <p class="food-price">${{ item.price }}</p>
+                  {% if item.is_spicy %}
+                  <span class="badge bg-danger">Spicy</span>
+                  {% endif %}
+                  <button
+                    class="btn btn-sm btn-primary add-to-cart mt-2"
+                    data-food-id="{{ item.id }}"
+                    data-food-name="{{ item.name }}"
+                    data-food-price="{{ item.price }}"
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="col-md-3">
+          <div class="filter-section">
+            <h4>Search & Filter</h4>
+            <form method="get" action="{% url 'food:food_selection' %}">
+              <div class="mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  name="search"
+                  placeholder="Search food..."
+                  value="{{ request.GET.search }}"
+                />
+              </div>
+
+              <div class="mb-3">
+                <label>Category</label>
+                <select class="form-select" name="category">
+                  <option value="">All Categories</option>
+                  <option value="desert">Desert</option>
+                  <option value="drinks">Drinks</option>
+                  <option value="main">Main Course</option>
+                  <option value="appetizer">Appetizer</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="spicy"
+                    id="spicyCheck"
+                  />
+                  <label class="form-check-label" for="spicyCheck">
+                    Spicy Only
+                  </label>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label>Price Range</label>
+                <div class="row">
+                  <div class="col">
+                    <input
+                      type="number"
+                      class="form-control"
+                      name="price_min"
+                      placeholder="Min"
+                      value="{{ request.GET.price_min }}"
+                    />
+                  </div>
+                  <div class="col">
+                    <input
+                      type="number"
+                      class="form-control"
+                      name="price_max"
+                      placeholder="Max"
+                      value="{{ request.GET.price_max }}"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">
+                Apply Filters
+              </button>
+            </form>
+
+            <hr class="my-4" />
+
+            <form action="{% url 'food:checkout' %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success w-100">
+                Proceed to Checkout
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'food/js/food.js' %}"></script>
+  </body>
+</html>

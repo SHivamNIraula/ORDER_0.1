@@ -1,0 +1,22 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.order-summary {
+    background: #f1f3f5;
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.payment-options button {
+    transition: all 0.3s;
+}
+
+.payment-options button:hover {
+    transform: translateY(-2px);
+}
+
+#qr-code-container img {
+    max-width: 300px;
+    margin: 0 auto;
+}

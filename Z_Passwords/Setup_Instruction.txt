@@ -1,0 +1,28 @@
+# If you have taken this code from github 
+First Command on Terminal: pip install virtualenv
+second Command on Terminal: python3 -m venv vrt
+
+
+# Make sure you have activated the virtual environment
+command on terminal: vrt\Scripts\activate
+
+
+# Also make sure to install all requirements from requirements.txt
+command on terminal: pip install -r requirements.txt
+
+
+# Navigate to main django file
+command on terminal: cd order_mng
+
+
+# Download and Start redis server (if you want websocket)
+command on ubuntu terminal: sudo apt-get install redis-server
+command on ubuntu terminal: redis-server
+
+
+# Run with Daphne for WebSocket support
+daphne -p 8000 order_mng.asgi:application
+
+
+# Or use the development server (without WebSocket)
+python manage.py runserver

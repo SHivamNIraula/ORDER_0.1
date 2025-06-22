@@ -1,0 +1,16 @@
+{% extends 'authentication/base.html' %} {% load crispy_forms_tags %} {% block
+title %}Register - Restaurant{% endblock %} {% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+    <h2 class="text-center mb-4">Create Account</h2>
+    <form method="post" class="auth-form">
+      {% csrf_token %} {{ form|crispy }}
+      <button type="submit" class="btn btn-primary w-100 mt-3">Register</button>
+    </form>
+    <p class="text-center mt-3">
+      Already have an account?
+      <a href="{% url 'authentication:login' %}">Login here</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
