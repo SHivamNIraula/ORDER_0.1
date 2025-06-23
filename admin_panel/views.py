@@ -8,6 +8,10 @@ from food.models import FoodItem, Order, FoodCategory
 from django.http import JsonResponse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 @staff_member_required
 def dashboard(request):
@@ -45,12 +49,24 @@ def dashboard(request):
 
 @staff_member_required
 def change_order_status(request, order_id):
+    logger.info(f"=== CHANGE ORDER STATUS REQUEST ===")
+    logger.info(f"Order ID: {order_id}")
+    logger.info(f"Method: {request.method}")
+    logger.info(f"User: {request.user}")
+    logger.info(f"Is staff: {request.user.is_staff}")
+    logger.info(f"Is authenticated: {request.user.is_authenticated}")
+    
     if request.method == 'POST':
         try:
+            logger.info(f"Attempting to get order with ID: {order_id}")
             order = Order.objects.get(id=order_id)
+            logger.info(f"Order found: {order}")
+            
+            # Update order status
             order.is_paid = True
             order.payment_method = 'counter'
             order.save()
+            logger.info(f"Order {order_id} marked as paid")
             
             # Unlock the table
             table = order.table
@@ -58,22 +74,36 @@ def change_order_status(request, order_id):
             table.locked_by = None
             table.locked_at = None
             table.save()
+            logger.info(f"Table {table.table_number} unlocked")
             
             # Send WebSocket notification to customer
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f'order_{order_id}',
-                {
-                    'type': 'payment_complete',
-                    'message': 'Payment successful',
-                    'order_id': order_id
-                }
-            )
+            try:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order_id}',
+                    {
+                        'type': 'payment_complete',
+                        'message': 'Payment successful',
+                        'order_id': order_id
+                    }
+                )
+                logger.info(f"WebSocket notification sent for order {order_id}")
+            except Exception as ws_error:
+                logger.error(f"WebSocket notification failed: {ws_error}")
+                # Don't fail the whole request if WebSocket fails
             
+            logger.info(f"Successfully processed order {order_id}")
             return JsonResponse({'success': True})
+            
         except Order.DoesNotExist:
+            logger.error(f"Order {order_id} not found")
             return JsonResponse({'success': False, 'error': 'Order not found'})
+        except Exception as e:
+            logger.error(f"Error processing order {order_id}: {str(e)}")
+            logger.exception("Full traceback:")
+            return JsonResponse({'success': False, 'error': str(e)})
     
+    logger.warning(f"Invalid request method: {request.method}")
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 @staff_member_required

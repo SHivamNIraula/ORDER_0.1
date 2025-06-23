@@ -41,3 +41,22 @@
 .notification.pending {
     border-left: 4px solid #ffc107;
 }
+
+/* NEW: Info notification style for new orders */
+.notification.info {
+    border-left: 4px solid #17a2b8;
+}
+
+/* NEW: Highlight animation for new table rows */
+@keyframes highlightRow {
+    0% {
+        background-color: #d4edda;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.new-order-row {
+    animation: highlightRow 3s ease-out;
+}

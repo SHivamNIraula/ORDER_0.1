@@ -4,6 +4,8 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import FoodItem, Order, OrderItem
 from tables.models import Table
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import json
 
 @login_required
@@ -102,5 +104,25 @@ def checkout(request):
     # Clear cart
     request.session['cart'] = {}
     request.session['current_order_id'] = order.id
+    
+    # NEW: Send real-time notification to admin about new order
+    channel_layer = get_channel_layer()
+    order_data = {
+        'id': order.id,
+        'table_number': order.table.table_number,
+        'username': order.user.username,
+        'total_amount': str(order.total_amount),
+        'created_at': order.created_at.strftime('%b %d, %H:%M'),
+        'is_paid': order.is_paid
+    }
+    
+    async_to_sync(channel_layer.group_send)(
+        'payment_payment_notifications',
+        {
+            'type': 'new_order_notification',
+            'order_data': order_data,
+            'message': f'New order #{order.id} from Table {table.table_number}'
+        }
+    )
     
     return redirect('payment:payment_options')

@@ -18,7 +18,7 @@ class PaymentConsumer(AsyncWebsocketConsumer):
                 self.channel_name
             )
         
-        # Join room group
+        # Join room group for admin notifications
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -88,6 +88,15 @@ class PaymentConsumer(AsyncWebsocketConsumer):
             'type': 'payment_complete',
             'message': event['message'],
             'order_id': event['order_id']
+        }))
+    
+    # NEW METHOD: Handle new order notifications
+    async def new_order_notification(self, event):
+        # Send new order data to admin dashboard
+        await self.send(text_data=json.dumps({
+            'type': 'new_order',
+            'order_data': event['order_data'],
+            'message': event['message']
         }))
     
     @database_sync_to_async
