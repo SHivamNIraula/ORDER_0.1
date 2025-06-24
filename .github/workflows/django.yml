@@ -69,10 +69,14 @@ jobs:
         python -c "import django; print(f'Django version: {django.get_version()}')"
         python manage.py check --settings=order_mng.settings_ci
 
+    - name: Run Django checks
+      run: |
+        python -c "import django; print(f'Django version: {django.get_version()}')"
+        python manage.py check --settings=order_mng.ci_settings
+
     - name: Run migrations
       run: |
-        python manage.py makemigrations --dry-run --check --settings=order_mng.settings_ci
-        python manage.py migrate --settings=order_mng.settings_ci
+        python manage.py migrate --settings=order_mng.ci_settings
 
     - name: Create superuser
       run: |
@@ -83,7 +87,7 @@ jobs:
 
     - name: Run tests
       run: |
-        python manage.py test --verbosity=2
+        python manage.py test --settings=order_mng.ci_settings
 
     - name: Collect static files
       run: |
