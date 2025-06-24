@@ -80,10 +80,7 @@ jobs:
 
     - name: Create superuser
       run: |
-        python manage.py shell -c "
-        from django.contrib.auth.models import User;
-        User.objects.create_superuser('admin', 'admin@test.com', 'admin123') if not User.objects.filter(username='admin').exists() else print('Admin user already exists')
-        "
+        echo "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@test.com', 'admin123') if not User.objects.filter(username='admin').exists() else None" | python manage.py shell --settings=order_mng.ci_settings
 
     - name: Run tests
       run: |
