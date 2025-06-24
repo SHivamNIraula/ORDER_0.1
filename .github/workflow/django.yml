@@ -1,4 +1,4 @@
-name: Django Restaurant Order Management CI/CD
+name: ORDER_0..1 CI/CD
 
 on:
   push:
