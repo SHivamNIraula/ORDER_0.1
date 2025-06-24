@@ -84,6 +84,8 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             'hosts': [('127.0.0.1', 6379)],
+            # Add these options to prevent session interference
+            'symmetric_encryption_keys': [SECRET_KEY],
         },
     },
 }
@@ -167,3 +169,36 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 LOGIN_URL = 'authentication:login'
 # LOGIN_REDIRECT_URL = 'tables:table_selection'
 LOGOUT_REDIRECT_URL = 'authentication:login'
+
+# Session Configuration - Add this section
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Use database sessions
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.contrib.sessions': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django.contrib.auth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'admin_panel.views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}

@@ -1,5 +1,4 @@
-// admin_panel/static/admin_panel/js/admin.js - Fixed Dynamic Buttons
-// second time changing the code to fix dynamic buttons issue
+// admin_panel/static/admin_panel/js/admin_v2.js - FIXED EVENT DELEGATION
 // CSRF Token function
 function getCookie(name) {
     let cookieValue = null;
@@ -21,7 +20,7 @@ let adminWebSocket = null;
 let isWebSocketConnected = false;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin JS loaded - Dynamic Buttons Fixed');
+    console.log('Admin JS loaded - Event Delegation Fixed');
     
     // Check if user is authenticated
     const csrfToken = getCookie('csrftoken');
@@ -30,27 +29,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize WebSocket connection
     initializeWebSocket();
     
-    // Use event delegation for change status buttons (works for dynamic content)
+    // FIXED: Use event delegation for change status buttons
     setupEventDelegation();
     
     console.log('Event delegation set up for dynamic buttons');
 });
 
-// Set up event delegation to handle both existing and dynamically added buttons
+// FIXED: Set up event delegation to handle both existing and dynamically added buttons
 function setupEventDelegation() {
     // Use event delegation on the table body to catch all button clicks
     const tableBody = document.getElementById('orders-table-body');
     if (tableBody) {
-        tableBody.addEventListener('click', function(e) {
-            // Check if clicked element is a change status button
-            if (e.target && e.target.classList.contains('change-status-btn')) {
-                e.preventDefault();
-                handleChangeStatusClick(e.target);
-            }
-        });
+        // Remove any existing listeners first (prevent duplicates)
+        tableBody.removeEventListener('click', handleTableBodyClick);
+        // Add the event listener
+        tableBody.addEventListener('click', handleTableBodyClick);
         console.log('Event delegation attached to table body');
     } else {
         console.error('Orders table body not found for event delegation');
+    }
+}
+
+// FIXED: Single event handler for all table body clicks
+function handleTableBodyClick(e) {
+    // Check if clicked element is a change status button
+    if (e.target && e.target.classList.contains('change-status-btn')) {
+        e.preventDefault();
+        handleChangeStatusClick(e.target);
     }
 }
 
@@ -66,26 +71,32 @@ async function handleChangeStatusClick(button) {
         return;
     }
     
+    // Prevent multiple clicks on the same button
+    if (button.disabled) {
+        console.log('Button already disabled, ignoring click');
+        return;
+    }
+    
     if (confirm('Mark this order as paid?')) {
         try {
+            // Disable button immediately to prevent double-clicks
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            
             // Get fresh CSRF token each time
             const csrfToken = getCookie('csrftoken');
             console.log('CSRF Token:', csrfToken ? 'Found' : 'NOT FOUND');
             
             if (!csrfToken) {
                 alert('Security error: Please refresh the page and try again.');
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Change';
                 return;
             }
             
             const url = `/admin-panel/change-order-status/${orderId}/`;
             console.log('Request URL:', url);
-            console.log('Full URL:', window.location.origin + url);
-            
-            console.log('Sending request with headers:', {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            });
             
             const response = await fetch(url, {
                 method: 'POST',
@@ -99,7 +110,6 @@ async function handleChangeStatusClick(button) {
             });
             
             console.log('Response status:', response.status);
-            console.log('Response content type:', response.headers.get('content-type'));
             
             // Get response text first
             const responseText = await response.text();
@@ -108,7 +118,6 @@ async function handleChangeStatusClick(button) {
             // Check if response is HTML (error page)
             if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
                 console.error('Received HTML instead of JSON');
-                console.log('Full HTML response:', responseText);
                 
                 if (responseText.includes('login') || responseText.includes('Login')) {
                     alert('Session expired. Please refresh the page and login again.');
@@ -117,6 +126,10 @@ async function handleChangeStatusClick(button) {
                 } else {
                     alert('Server error occurred. Please refresh the page and try again.');
                 }
+                
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Change';
                 return;
             }
             
@@ -127,19 +140,21 @@ async function handleChangeStatusClick(button) {
                 console.log('Parsed JSON:', data);
             } catch (jsonError) {
                 console.error('JSON parse error:', jsonError);
-                console.log('Response was not valid JSON:', responseText);
                 alert('Invalid response from server. Please refresh the page and try again.');
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Change';
                 return;
             }
             
             if (data.success) {
                 console.log('Order status updated successfully');
                 
-                // Update button appearance
-                button.textContent = 'Updated';
-                button.disabled = true;
+                // Update button appearance permanently
+                button.textContent = 'Paid';
                 button.classList.remove('btn-primary');
                 button.classList.add('btn-success');
+                // Keep button disabled
                 
                 showNotification('Order status updated successfully', 'success');
                 
@@ -164,6 +179,9 @@ async function handleChangeStatusClick(button) {
             } else {
                 console.error('Server returned error:', data.error);
                 alert('Failed: ' + (data.error || 'Unknown error'));
+                // Re-enable button on error
+                button.disabled = false;
+                button.textContent = 'Change';
             }
             
         } catch (error) {
@@ -177,7 +195,14 @@ async function handleChangeStatusClick(button) {
             } else {
                 alert('Error: ' + error.message);
             }
+            
+            // Re-enable button on error
+            button.disabled = false;
+            button.textContent = 'Change';
         }
+    } else {
+        // User cancelled, make sure button is enabled
+        button.disabled = false;
     }
     
     console.log('=== END CHANGE STATUS ===');
@@ -212,9 +237,8 @@ function initializeWebSocket() {
                     showNotification(data.message, data.status);
                     
                     if (data.status === 'success') {
-                        setTimeout(() => {
-                            location.reload();
-                        }, 2000);
+                        // Don't reload the page, let the UI update handle it
+                        console.log('Payment successful, UI updated via WebSocket');
                     }
                 }
             } catch (error) {
@@ -284,8 +308,7 @@ function addNewOrderToTable(orderData) {
         return;
     }
     
-    // Create new row - NO NEED to manually attach event listeners
-    // Event delegation will handle the click automatically
+    // Create new row - Event delegation will automatically handle clicks
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>#${orderData.id}</td>
@@ -318,5 +341,12 @@ function addNewOrderToTable(orderData) {
         newRow.style.backgroundColor = '';
     }, 3000);
     
-    console.log('New order row added successfully (event delegation will handle clicks)');
+    // Update pending count
+    const pendingCountElement = document.getElementById('pending-count');
+    if (pendingCountElement) {
+        const currentCount = parseInt(pendingCountElement.textContent) || 0;
+        pendingCountElement.textContent = currentCount + 1;
+    }
+    
+    console.log('New order row added successfully (event delegation will handle clicks automatically)');
 }

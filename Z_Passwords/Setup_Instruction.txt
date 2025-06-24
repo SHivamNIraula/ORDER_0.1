@@ -11,8 +11,17 @@ command on terminal: vrt\Scripts\activate
 command on terminal: pip install -r requirements.txt
 
 
-# Navigate to main django file
+# Create and Navigate to main django file
+command on terminal: django-admin startproject order_mng
 command on terminal: cd order_mng
+
+
+# Then copy all the files from github after creating all the django app as:
+command on terminal: python manage.py startapp admin_panel
+command on terminal: python manage.py startapp authentication
+command on terminal: python manage.py startapp food
+command on terminal: python manage.py startapp payment
+command on terminal: python manage.py startapp tables
 
 
 # Download and Start redis server (if you want websocket)
@@ -26,3 +35,8 @@ daphne -p 8000 order_mng.asgi:application
 
 # Or use the development server (without WebSocket)
 python manage.py runserver
+
+
+OPTIONAL:
+Usefull commands:
+python manage.py collectstatic --clear --noinput
