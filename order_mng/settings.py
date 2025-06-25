@@ -1,26 +1,21 @@
 """
-Django settings for order_mng project.
-
-This file handles both development (SQLite) and production (PostgreSQL) environments
+Robust Django settings that work during Railway build process
+Replace your order_mng/settings.py with this version
 """
 import os
-import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-$ols)1h1lgh5ze)rjh2z4e6lekjc369quu8b*(f9ui4zg$6ss(')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key-for-build-process-only')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 # Hosts configuration
-if DEBUG:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-else:
-    ALLOWED_HOSTS = ['*']  # Railway handles domain routing
+ALLOWED_HOSTS = ['*']  # Allow all hosts for Railway
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,20 +41,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-]
-
-# Add WhiteNoise only in production
-if not DEBUG:
-    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
-
-MIDDLEWARE.extend([
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Always include WhiteNoise
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-])
+]
 
 ROOT_URLCONF = 'order_mng.urls'
 
@@ -82,20 +71,41 @@ TEMPLATES = [
 # Channels configuration
 ASGI_APPLICATION = 'order_mng.asgi.application'
 
-# Redis/Channels configuration
-if 'REDIS_URL' in os.environ:
+# Database configuration with fallback
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    # Production: Use Railway's PostgreSQL
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    # Development/Build: Use SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Redis/Channels configuration with fallback
+REDIS_URL = os.environ.get('REDIS_URL')
+if REDIS_URL:
     # Production: Use Railway's Redis
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                'hosts': [os.environ.get('REDIS_URL')],
-                'symmetric_encryption_keys': [SECRET_KEY],
+                'hosts': [REDIS_URL],
             },
         },
     }
 else:
-    # Development: Use in-memory channel layer
+    # Development/Build: Use in-memory channel layer
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels.layers.InMemoryChannelLayer'
@@ -103,25 +113,6 @@ else:
     }
 
 WSGI_APPLICATION = 'order_mng.wsgi.application'
-
-# Database configuration
-if 'DATABASE_URL' in os.environ:
-    # Production: Use Railway's PostgreSQL
-    DATABASES = {
-        'default': dj_database_url.parse(
-            os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
-else:
-    # Development: Use SQLite
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -145,23 +136,20 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files configuration
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-if DEBUG:
-    # Development static files configuration
-    STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'static'),
-    ]
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-else:
-    # Production static files configuration
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Ensure staticfiles directory exists for collectstatic
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
-# Media files (uploads)
+# Static files storage
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -170,7 +158,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# Login URLs
+# Authentication
 LOGIN_URL = 'authentication:login'
 LOGOUT_REDIRECT_URL = 'authentication:login'
 
@@ -179,52 +167,33 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_COOKIE_SECURE = not DEBUG  # Secure cookies in production
+SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # CSRF Configuration
-CSRF_COOKIE_SECURE = not DEBUG  # Secure CSRF cookies in production
+CSRF_COOKIE_SECURE = not DEBUG
 
-# Security settings for production
+# Security settings
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
 
-# Logging configuration
+# Logging with error handling
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple' if DEBUG else 'verbose',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': True,
-        },
-        'order_mng': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'level': 'INFO',
             'propagate': True,
         },
     },
