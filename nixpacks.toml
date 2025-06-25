@@ -1,0 +1,13 @@
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.12"
+
+[phases.setup]
+nixPkgs = ["python312", "postgresql"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+# NO BUILD PHASE - Skip collectstatic during build
+
+[start]
+cmd = "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p $PORT order_mng.asgi:application"
